@@ -6,6 +6,8 @@ from pathlib import Path
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.security import MIN_API_KEY_LENGTH
+
 # Project root folder (knowledge-assistant/), so paths work no matter where uvicorn is started.
 BASE_DIR = Path(__file__).resolve().parents[2]
 
@@ -49,6 +51,10 @@ class Settings(BaseSettings):
     # Conversations
     conversation_history_turns: int = 3  # recent question/answer pairs remembered per session
     conversation_max_sessions: int = 500  # oldest idle sessions are dropped beyond this
+    
+    # Authentication: JSON lists of keys. Admin keys can manage documents, user keys can only ask questions.
+    admin_api_keys: list[str] = []
+    user_api_keys: list[str] = []
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -61,6 +67,14 @@ class Settings(BaseSettings):
     def _make_path_absolute(cls, value: Path) -> Path:
         """Treat relative paths as relative to the project root."""
         return value if value.is_absolute() else BASE_DIR / value
+    
+    @field_validator("admin_api_keys", "user_api_keys")
+    @classmethod
+    def _reject_weak_api_keys(cls, keys: list[str]) -> list[str]:
+        """Refuse to start with guessable keys."""
+        if any(len(key) < MIN_API_KEY_LENGTH for key in keys):
+            raise ValueError(f"every API key must be at least {MIN_API_KEY_LENGTH} characters long")
+        return keys
 
     @property
     def max_upload_bytes(self) -> int:

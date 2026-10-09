@@ -22,7 +22,7 @@ class ChatResult:
 
 
 class ChatService:
-    """Handles a user's question inside a conversation session."""
+    """Handles a user's question inside a conversation session. Sessions are private to each client."""
 
     def __init__(
         self,
@@ -34,16 +34,17 @@ class ChatService:
         self._question_rewriter = question_rewriter
         self._conversations = conversation_repository
 
-    def ask(self, question: str, session_id: str | None) -> ChatResult:
+    def ask(self, question: str, session_id: str | None, client_id: str) -> ChatResult:
         """Answer the question, remembering it for follow-ups. A new session is created when none is given."""
         active_session_id = session_id or uuid.uuid4().hex
+        storage_key = self._storage_key(client_id, active_session_id)
 
-        history = self._conversations.get_history(active_session_id)
+        history = self._conversations.get_history(storage_key)
         standalone_question = self._question_rewriter.rewrite(question, history)
         rag_answer = self._rag_service.answer(standalone_question)
 
         # Saved only after a successful answer, so a failed turn never pollutes the history.
-        self._conversations.append_exchange(active_session_id, question, rag_answer.answer)
+        self._conversations.append_exchange(storage_key, question, rag_answer.answer)
 
         return ChatResult(
             session_id=active_session_id,
@@ -51,8 +52,13 @@ class ChatService:
             rag_answer=rag_answer,
         )
 
-    def clear_session(self, session_id: str) -> None:
-        """Forget a conversation. Raises NotFoundError if the session does not exist."""
-        if not self._conversations.clear(session_id):
+    def clear_session(self, session_id: str, client_id: str) -> None:
+        """Forget one of the caller's conversations. Raises NotFoundError if it does not exist."""
+        if not self._conversations.clear(self._storage_key(client_id, session_id)):
             raise NotFoundError(f"Chat session '{session_id}' was not found.")
-        logger.info("Cleared chat session '%s'", session_id)
+        logger.info("Cleared chat session '%s' for client %s", session_id, client_id)
+
+    @staticmethod
+    def _storage_key(client_id: str, session_id: str) -> str:
+        """Namespace the session by client, so two clients can both use 'demo-1' without sharing history."""
+        return f"{client_id}:{session_id}"

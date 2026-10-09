@@ -15,6 +15,7 @@ from app.api.dependencies import (
 from app.core.config import Settings, get_settings
 from app.main import app
 from app.repositories.conversation_repository import InMemoryConversationRepository
+from tests.constants import ADMIN_API_KEY, USER_API_KEY
 from tests.fakes import FakeChunkRepository, FakeOllamaStatusChecker, ScriptedChatModel
 
 
@@ -27,6 +28,8 @@ def settings(tmp_path: Path) -> Settings:
         documents_dir=tmp_path / "documents",
         chroma_persist_dir=tmp_path / "chroma",
         max_upload_size_mb=1,
+        admin_api_keys=[ADMIN_API_KEY],
+        user_api_keys=[USER_API_KEY],
     )
 
 
@@ -52,7 +55,7 @@ def client(
     chat_model: ScriptedChatModel,
     ollama_checker: FakeOllamaStatusChecker,
 ) -> Iterator[TestClient]:
-    """A test client whose external dependencies (Ollama, ChromaDB) are all fakes."""
+    """A test client that sends the ADMIN key. Ollama and ChromaDB are replaced by fakes."""
     conversation_repository = InMemoryConversationRepository(max_messages_per_session=6, max_sessions=10)
 
     app.dependency_overrides[get_settings] = lambda: settings
@@ -61,7 +64,19 @@ def client(
     app.dependency_overrides[get_conversation_repository] = lambda: conversation_repository
     app.dependency_overrides[get_ollama_status_checker] = lambda: ollama_checker
 
-    with TestClient(app) as test_client:
+    with TestClient(app, headers={"X-API-Key": ADMIN_API_KEY}) as test_client:
         yield test_client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def user_client(client: TestClient) -> TestClient:
+    """A client that sends the USER key. It shares the fakes set up by the `client` fixture."""
+    return TestClient(app, headers={"X-API-Key": USER_API_KEY})
+
+
+@pytest.fixture
+def anonymous_client(client: TestClient) -> TestClient:
+    """A client that sends no API key at all."""
+    return TestClient(app)

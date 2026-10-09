@@ -145,3 +145,4 @@ knowledge base, so upload documents again. Stop with `docker compose down`.
 - No authentication or rate limiting. Put the API behind a gateway before exposing it.
 - Scanned (image-only) PDFs are not supported because they contain no extractable text.
 - The distance cut-off was tuned on a small handbook. Re-check it with your own documents.
+- No per-document access control: every valid API key can query every indexed document. Do not index personal or confidential files.

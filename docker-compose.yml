@@ -10,6 +10,8 @@ services:
       LLM_NUM_GPU: "0"
       CHROMA_PERSIST_DIR: /code/data/chroma
       DOCUMENTS_DIR: /code/data/documents
+      ADMIN_API_KEYS: "${ADMIN_API_KEYS:?Set ADMIN_API_KEYS in your .env file}"
+      USER_API_KEYS: "${USER_API_KEYS:-[]}"
     volumes:
       - knowledge_data:/code/data   # a Docker volume, so nothing is written into OneDrive
     extra_hosts:

@@ -46,4 +46,20 @@ class PayloadTooLargeError(AppError):
 
     status_code = 413
     code = "payload_too_large"
-    default_message = "The uploaded file is too large."    
+    default_message = "The uploaded file is too large."  
+    
+    
+class UnauthorizedError(AppError):
+    """The request has no valid credentials."""
+
+    status_code = 401
+    code = "unauthorized"
+    default_message = "Authentication is required."
+
+
+class ForbiddenError(AppError):
+    """The caller is authenticated but not allowed to do this."""
+
+    status_code = 403
+    code = "forbidden"
+    default_message = "You do not have permission to do this."      
