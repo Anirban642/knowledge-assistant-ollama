@@ -1,8 +1,14 @@
+# Python
 venv/
 __pycache__/
 *.pyc
-.env
 .pytest_cache/
-.vscode/
+
+# Local configuration and data
+.env
 data/*
 !data/.gitkeep
+
+# Editor / OS
+.vscode/
+.DS_Store
