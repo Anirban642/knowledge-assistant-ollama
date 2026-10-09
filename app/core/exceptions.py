@@ -40,3 +40,10 @@ class ExternalServiceError(AppError):
     status_code = 503
     code = "external_service_unavailable"
     default_message = "A required external service is currently unavailable."
+    
+class PayloadTooLargeError(AppError):
+    """An uploaded file exceeds the allowed size."""
+
+    status_code = 413
+    code = "payload_too_large"
+    default_message = "The uploaded file is too large."    
