@@ -114,7 +114,13 @@ def get_rag_service(
     chat_model: BaseChatModel = Depends(get_chat_model),
 ) -> RagService:
     """Build the RAG service that answers a single, standalone question."""
-    return RagService(retrieval_service, chat_model, settings.retrieval_max_distance)
+    return RagService(
+        retrieval_service=retrieval_service,
+        chat_model=chat_model,
+        max_distance=settings.retrieval_max_distance,
+        source_distance_margin=settings.source_distance_margin,
+        max_sources=settings.max_sources,
+    )
 
 
 def get_question_rewriter(chat_model: BaseChatModel = Depends(get_chat_model)) -> QuestionRewriter:

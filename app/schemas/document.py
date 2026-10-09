@@ -3,24 +3,6 @@
 from pydantic import BaseModel, ConfigDict
 
 
-class ChunkPreview(BaseModel):
-    """A single chunk as shown to API clients."""
-
-    chunk_index: int
-    source: str
-    page: int | None = None
-    characters: int
-    text: str
-
-
-class ChunkPreviewResponse(BaseModel):
-    """Summary of how a document was chunked, plus the first few chunks."""
-
-    filename: str
-    total_chunks: int
-    chunks: list[ChunkPreview]
-
-
 class IngestionResponse(BaseModel):
     """Outcome of indexing a document into the knowledge base."""
 
@@ -29,8 +11,8 @@ class IngestionResponse(BaseModel):
     source: str
     chunks_stored: int
     replaced_chunks: int
-    
-    
+
+
 class DocumentInfo(BaseModel):
     """One indexed document."""
 
@@ -54,4 +36,4 @@ class DeleteDocumentResponse(BaseModel):
 
     source: str
     chunks_deleted: int
-    file_deleted: bool    
+    file_deleted: bool

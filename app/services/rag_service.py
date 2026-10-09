@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 
 @dataclass(frozen=True)
 class RagAnswer:
-    """The assistant's answer and the document chunks that support it."""
+    """The assistant's answer and the document chunks that best support it."""
 
     answer: str
     sources: list[RetrievedChunk]
@@ -31,10 +31,14 @@ class RagService:
         retrieval_service: RetrievalService,
         chat_model: BaseChatModel,
         max_distance: float,
+        source_distance_margin: float,
+        max_sources: int,
     ) -> None:
         self._retrieval_service = retrieval_service
         self._chain = RAG_PROMPT | chat_model | StrOutputParser()
         self._max_distance = max_distance
+        self._source_distance_margin = source_distance_margin
+        self._max_sources = max_sources
 
     def answer(self, question: str) -> RagAnswer:
         """Answer the question from the knowledge base, or say the information is not available."""
@@ -57,7 +61,21 @@ class RagService:
         if NO_ANSWER_MESSAGE.lower() in answer_text.lower():
             return RagAnswer(answer=NO_ANSWER_MESSAGE, sources=[], answered_from_documents=False)
 
-        return RagAnswer(answer=answer_text, sources=relevant_chunks, answered_from_documents=True)
+        return RagAnswer(
+            answer=answer_text,
+            sources=self._select_sources(relevant_chunks),
+            answered_from_documents=True,
+        )
+
+    def _select_sources(self, chunks: list[RetrievedChunk]) -> list[RetrievedChunk]:
+        """Pick the chunks to show as sources: the best match plus any nearly as close, capped.
+
+        The LLM still received every relevant chunk. This only keeps the response readable.
+        """
+        ranked = sorted(chunks, key=lambda chunk: chunk.distance)
+        cutoff = ranked[0].distance + self._source_distance_margin
+        close_matches = [chunk for chunk in ranked if chunk.distance <= cutoff]
+        return close_matches[: self._max_sources]
 
     def _generate(self, question: str, chunks: list[RetrievedChunk]) -> str:
         """Run the prompt through the LLM, converting any failure into a clear app error."""

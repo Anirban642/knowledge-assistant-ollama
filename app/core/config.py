@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     chroma_collection_name: str = "company_knowledge"
     retrieval_top_k: int = 4
     retrieval_max_distance: float = 0.45
+    source_distance_margin: float = 0.08  # only show sources this close to the best match
+    max_sources: int = 3
 
     llm_model: str = "llama3"
     llm_temperature: float = 0.0
