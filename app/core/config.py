@@ -3,6 +3,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Project root folder (knowledge-assistant/), so paths work no matter where uvicorn is started.
@@ -12,35 +13,41 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 class Settings(BaseSettings):
     """Central place for every configurable value in the application."""
 
+    # Application
     app_name: str = "Company Knowledge Assistant"
     app_version: str = "0.1.0"
     environment: str = "development"
-    debug: bool = True
     log_level: str = "INFO"
     api_v1_prefix: str = "/api/v1"
+    cors_allowed_origins: list[str] = []  # browser origins allowed to call the API, e.g. a React app
 
+    # Documents and chunking
     documents_dir: Path = BASE_DIR / "data" / "documents"
     max_upload_size_mb: int = 10
     chunk_size: int = 800
     chunk_overlap: int = 150
 
+    # Ollama
     ollama_base_url: str = "http://localhost:11434"
     embedding_model: str = "nomic-embed-text"
-
-    chroma_persist_dir: Path = BASE_DIR / "data" / "chroma"
-    chroma_collection_name: str = "company_knowledge"
-    retrieval_top_k: int = 4
-    retrieval_max_distance: float = 0.45
-    source_distance_margin: float = 0.08  # only show sources this close to the best match
-    max_sources: int = 3
-
     llm_model: str = "llama3"
     llm_temperature: float = 0.0
     llm_num_ctx: int = 4096
     llm_num_gpu: int | None = None  # 0 = force CPU, unset = let Ollama decide
     llm_timeout_seconds: float = 180.0
-    
-    conversation_history_turns: int = 3  # how many recent question/answer pairs are remembered per session
+
+    # Vector database
+    chroma_persist_dir: Path = BASE_DIR / "data" / "chroma"
+    chroma_collection_name: str = "company_knowledge"
+
+    # Retrieval
+    retrieval_top_k: int = 4
+    retrieval_max_distance: float = 0.45
+    source_distance_margin: float = 0.08  # only show sources this close to the best match
+    max_sources: int = 3
+
+    # Conversations
+    conversation_history_turns: int = 3  # recent question/answer pairs remembered per session
     conversation_max_sessions: int = 500  # oldest idle sessions are dropped beyond this
 
     model_config = SettingsConfigDict(
@@ -48,6 +55,12 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @field_validator("documents_dir", "chroma_persist_dir")
+    @classmethod
+    def _make_path_absolute(cls, value: Path) -> Path:
+        """Treat relative paths as relative to the project root."""
+        return value if value.is_absolute() else BASE_DIR / value
 
     @property
     def max_upload_bytes(self) -> int:

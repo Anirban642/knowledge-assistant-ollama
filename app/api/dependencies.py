@@ -11,6 +11,7 @@ from app.infrastructure.file_document_loader import FileDocumentLoader
 from app.infrastructure.file_storage import LocalDocumentStorage
 from app.infrastructure.llm import create_chat_model
 from app.infrastructure.vector_store import create_vector_store
+from app.infrastructure.ollama_status import OllamaStatusChecker
 from app.repositories.chunk_repository import ChunkRepository
 from app.repositories.conversation_repository import (
     ConversationRepository,
@@ -24,6 +25,7 @@ from app.services.ingestion_service import IngestionService
 from app.services.question_rewriter import QuestionRewriter
 from app.services.rag_service import RagService
 from app.services.retrieval_service import RetrievalService
+from app.services.health_service import HealthService
 
 
 @lru_cache
@@ -135,3 +137,21 @@ def get_chat_service(
 ) -> ChatService:
     """Build the chat service that handles conversations."""
     return ChatService(rag_service, question_rewriter, conversations)
+
+
+def get_ollama_status_checker(settings: Settings = Depends(get_settings)) -> OllamaStatusChecker:
+    """Build the checker that asks Ollama which models are installed."""
+    return OllamaStatusChecker(settings.ollama_base_url)
+
+
+def get_health_service(
+    settings: Settings = Depends(get_settings),
+    ollama_status_checker: OllamaStatusChecker = Depends(get_ollama_status_checker),
+    chunk_repository: ChunkRepository = Depends(get_chunk_repository),
+) -> HealthService:
+    """Build the service that reports whether dependencies are ready."""
+    return HealthService(
+        ollama_status_checker=ollama_status_checker,
+        chunk_repository=chunk_repository,
+        required_models=[settings.llm_model, settings.embedding_model],
+    )

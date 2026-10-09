@@ -76,6 +76,11 @@ class ChunkRepository:
             metadatas = self._store.get(include=["metadatas"])["metadatas"] or []
         counts = Counter(metadata.get("source", "unknown") for metadata in metadatas)
         return dict(sorted(counts.items()))
+    
+    def ping(self) -> None:
+        """Confirm the vector database can be read. Raises ExternalServiceError if it cannot."""
+        with _translate_errors("checking the vector database"):
+            self._store.get(limit=1, include=["metadatas"])
 
     def similarity_search(self, query: str, top_k: int) -> list[RetrievedChunk]:
         """Return the top_k chunks whose meaning is closest to the query."""
