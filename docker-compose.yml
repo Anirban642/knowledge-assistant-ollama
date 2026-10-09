@@ -1,0 +1,20 @@
+services:
+  api:
+    build: .
+    image: knowledge-assistant:latest
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: production
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      LLM_NUM_GPU: "0"
+      CHROMA_PERSIST_DIR: /code/data/chroma
+      DOCUMENTS_DIR: /code/data/documents
+    volumes:
+      - knowledge_data:/code/data   # a Docker volume, so nothing is written into OneDrive
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  knowledge_data:
