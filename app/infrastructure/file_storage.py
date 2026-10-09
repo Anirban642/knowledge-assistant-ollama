@@ -13,6 +13,11 @@ class LocalDocumentStorage:
     def exists(self, filename: str) -> bool:
         """Return True if the file is already stored."""
         return self._path_for(filename).is_file()
+    
+    def read(self, filename: str) -> bytes | None:
+        """Return the stored file's bytes, or None if it does not exist."""
+        path = self._path_for(filename)
+        return path.read_bytes() if path.is_file() else None
 
     def save(self, filename: str, content: bytes) -> Path:
         """Write the file to disk, replacing any existing file with the same name."""

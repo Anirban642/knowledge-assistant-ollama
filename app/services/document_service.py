@@ -54,15 +54,17 @@ class DocumentService:
         safe_name = self._sanitize_filename(filename)
         self._validate_upload(safe_name, content)
 
-        already_existed = self._storage.exists(safe_name)
+        previous_content = self._storage.read(safe_name)  # None when this is a brand-new file
         self._storage.save(safe_name, content)
 
         try:
             return self._ingestion_service.ingest_file(safe_name)
         except Exception:
-            # Do not leave an un-indexed file behind when a brand-new upload fails.
-            if not already_existed:
+            # Roll the disk back so it never disagrees with what is indexed.
+            if previous_content is None:
                 self._storage.delete(safe_name)
+            else:
+                self._storage.save(safe_name, previous_content)
             raise
 
     def list_documents(self) -> list[DocumentSummary]:
