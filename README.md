@@ -146,3 +146,19 @@ knowledge base, so upload documents again. Stop with `docker compose down`.
 - Scanned (image-only) PDFs are not supported because they contain no extractable text.
 - The distance cut-off was tuned on a small handbook. Re-check it with your own documents.
 - No per-document access control: every valid API key can query every indexed document. Do not index personal or confidential files.
+
+## Evaluation
+
+`evaluation/questions.json` holds 31 questions about `samples/company_handbook.txt`: in-scope facts, out-of-scope
+questions that must be refused, and follow-up conversations. The checks are keyword based, so treat the score as
+a trend, not a grade.
+
+    export EVAL_API_KEY=<a user or admin key>
+    python evaluation/run_evaluation.py                 # all cases (5 to 15 minutes on CPU)
+    python evaluation/run_evaluation.py --filter notice # only matching cases
+    python evaluation/run_evaluation.py --min-pass-rate 0.8   # exit code 1 below 80 percent
+
+To add a case, append an entry to `questions.json`. `"must_contain": ["31 march|march 31"]` means the answer needs
+that text, with `|` separating accepted phrasings. `"should_answer": false` means it must be refused.
+
+Baseline (llama3 8B on CPU, chunk size 800): **<your passed>/31**, median response time <your seconds>s.
